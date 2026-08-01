@@ -1,0 +1,74 @@
+# SUMBER KEBENARAN definisi 3 lensa audiens.
+# Dipakai di 3 tempat: (1) prompt teacher Gemini, (2) instruksi inferensi, (3) rubrik human eval.
+# Ubah di sini saja — jangan duplikasi definisi di kode lain.
+
+audiences:
+  eksekutif:
+    label: "Brief Eksekutif"
+    tag: "[AUDIENS: Eksekutif]"
+    untuk: "Pengambil keputusan yang sibuk (direktur, manajer senior)."
+    aturan:
+      - "Bottom line up front: kesimpulan/keputusan ada di kalimat pertama."
+      - "Fokus 'so what': dampak, risiko, dan 1 angka kunci."
+      - "Maksimal ~5 bullet. Tanpa jargon. Tanpa langkah teknis detail."
+    panjang_target: "60-120 kata"
+    validasi:            # dipakai validate_targets.py (quality gate, machine-readable)
+      kata_min: 60
+      kata_maks: 120
+      struktur: "bullet"     # wajib ada bullet list
+      maks_bullet: 5
+    rubrik_eval:
+      - "Apakah kesimpulan utama langsung kelihatan di awal?"
+      - "Apakah ada angka/dampak kunci, bukan deskripsi proses?"
+      - "Apakah cukup ringkas untuk dibaca < 30 detik?"
+
+  operasional:
+    label: "Brief Operasional"
+    tag: "[AUDIENS: Operasional]"
+    untuk: "Orang yang akan mengeksekusi (staf, tim teknis, PIC)."
+    aturan:
+      - "Actionable: siapa melakukan apa, langkah, tenggat, dependensi."
+      - "Boleh lebih panjang & detail. Pakai list bernomor."
+      - "Sertakan angka spesifik dan syarat/kondisi relevan."
+    panjang_target: "120-250 kata"
+    validasi:
+      kata_min: 120
+      kata_maks: 250
+      struktur: "nomor"      # wajib list bernomor
+    rubrik_eval:
+      - "Apakah ada langkah/aksi konkret yang bisa dijalankan?"
+      - "Apakah detail penting (tenggat, pihak, syarat) tercakup?"
+      - "Apakah cukup spesifik untuk dikerjakan tanpa nanya ulang?"
+
+  awam:
+    label: "Brief Awam"
+    tag: "[AUDIENS: Awam]"
+    untuk: "Publik umum tanpa latar belakang domain."
+    aturan:
+      - "Bahasa polos, nol jargon. Kalau ada istilah teknis, jelaskan singkat."
+      - "Jawab 'kenapa ini penting buat saya'. Boleh pakai analogi sederhana."
+      - "Nada netral, tidak menggurui, tidak alarmis."
+    panjang_target: "80-160 kata"
+    validasi:
+      kata_min: 80
+      kata_maks: 160
+      struktur: "paragraf"   # prosa polos, bukan list
+    rubrik_eval:
+      - "Apakah bebas jargon / istilah dijelaskan?"
+      - "Apakah relevansi ke pembaca awam jelas?"
+      - "Apakah mudah dipahami orang tanpa latar domain?"
+
+# Tes conditioning: 3 output dari input yang SAMA harus jelas beda
+# (panjang, struktur, diksi). Ukur dengan pairwise ROUGE rendah + distinct-n tinggi.
+conditioning_check:
+  pairwise_rouge_l_max: 0.55   # kalau lebih tinggi dari ini, conditioning lemah
+  catatan: "Angka ambang ini awal/heuristik — kalibrasi ulang setelah lihat data nyata."
+
+# Aturan tolak global untuk quality gate (validate_targets.py):
+# brief dibuang kalau salah satu kena, regenerate 1x dulu sebelum buang.
+tolak_jika:
+  - "kosong atau < kata_min"
+  - "refusal / meta-text (mis. 'Sebagai AI...', 'Berikut adalah ringkasan')"
+  - "bukan bahasa Indonesia"
+  - "mengandung tag [AUDIENS: ...] di body"
+  - "struktur tidak sesuai field 'struktur' audiens"
