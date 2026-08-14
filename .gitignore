@@ -53,3 +53,8 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Instruksi agen, bukan bagian dari spesifikasi publik
+CLAUDE.md
+AGENTS.md
+.claude/
