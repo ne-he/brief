@@ -1,6 +1,6 @@
 # SUMBER KEBENARAN definisi 3 lensa audiens.
 # Dipakai di 3 tempat: (1) prompt teacher Gemini, (2) instruksi inferensi, (3) rubrik human eval.
-# Ubah di sini saja — jangan duplikasi definisi di kode lain.
+# Ubah di sini saja: jangan duplikasi definisi di kode lain.
 
 audiences:
   eksekutif:
@@ -62,7 +62,7 @@ audiences:
 # (panjang, struktur, diksi). Ukur dengan pairwise ROUGE rendah + distinct-n tinggi.
 conditioning_check:
   pairwise_rouge_l_max: 0.55   # kalau lebih tinggi dari ini, conditioning lemah
-  catatan: "Angka ambang ini awal/heuristik — kalibrasi ulang setelah lihat data nyata."
+  catatan: "Angka ambang ini awal/heuristik, kalibrasi ulang setelah lihat data nyata."
 
 # Aturan tolak global untuk quality gate (validate_targets.py):
 # brief dibuang kalau salah satu kena, regenerate 1x dulu sebelum buang.

@@ -1,4 +1,4 @@
-# BRIEF — Technical Blueprint
+# BRIEF: Technical Blueprint
 
 > Fine-tune model kecil (QLoRA) buat domain Indonesia. **Satu model, banyak lensa audiens.**
 > Input dokumen sama → **Brief Eksekutif / Brief Operasional / Brief Awam**.
@@ -14,8 +14,8 @@
 Yang bikin proyek ini *standout* BUKAN "berhasil fine-tune". Itu komoditas.
 Yang standout = **dua hal yang digabung dengan benar:**
 
-1. **Audience conditioning** — satu model fine-tuned bisa nulis 3 gaya brief berbeda dari input yang sama. Ini produk + skill komunikasi, bukan cuma ML.
-2. **Eval rigor gabungan** — lexical (ROUGE) + semantic (BERTScore) + **human preference study**. Plus jujur soal limitasi metrik (lihat §4). Kejujuran metodologis = sinyal senioritas.
+1. **Audience conditioning**: satu model fine-tuned bisa nulis 3 gaya brief berbeda dari input yang sama. Ini produk + skill komunikasi, bukan cuma ML.
+2. **Eval rigor gabungan**: lexical (ROUGE) + semantic (BERTScore) + **human preference study**. Plus jujur soal limitasi metrik (lihat §4). Kejujuran metodologis = sinyal senioritas.
 
 Kalau di akhir cuma punya "model yang bisa nyummarize" tanpa 3 lensa yang **jelas beda** dan tanpa angka base-vs-tuned + human study, proyek ini gagal jadi flagship. Jaga dua hal itu di atas segalanya.
 
@@ -35,7 +35,7 @@ Kalau di akhir cuma punya "model yang bisa nyummarize" tanpa 3 lensa yang **jela
 Kalau target = output Gemini, maka ROUGE/BERTScore vs target itu ngukur **"seberapa mirip gue sama teacher"**, BUKAN "seberapa bagus secara objektif". Makanya:
 - Simpan juga **ringkasan referensi asli** dari dataset → buat ngukur *faithfulness/coverage* (anti-halu), bukan cuma imitasi.
 - **Human preference study** = validator kualitas sebenarnya. Wajib ada.
-- Boleh tambah **LLM-as-judge** (Gemini nge-rate audience-fit) sebagai proxy skalabel — tapi **akui bias** (teacher = judge). Tulis caveat ini di laporan. Recruiter ML yang ngerti bakal respect lo justru karena sadar limitasi ini.
+- Boleh tambah **LLM-as-judge** (Gemini nge-rate audience-fit) sebagai proxy skalabel, tapi **akui bias** (teacher = judge). Tulis caveat ini di laporan. Recruiter ML yang ngerti bakal respect lo justru karena sadar limitasi ini.
 
 ### 1.2 Korpus: Berita dulu, Legal sebagai stretch
 | Pilihan | Pro | Kontra |
@@ -46,9 +46,9 @@ Kalau target = output Gemini, maka ROUGE/BERTScore vs target itu ngukur **"seber
 **Keputusan:** Mulai dari **IndoSum** (paling bersih, ~19k, splits rapi) untuk **menjamin pipeline jalan**. Setelah M2 sukses, kalau waktu cukup, masukin **subset kecil putusan MA** sebagai demo *domain transfer* di M3/stretch. **Jangan biarin data-cleaning legal nyandera timeline.** Pipeline jalan dulu > data keren tapi nggak kelar.
 
 ### 1.3 Model dasar
-- **Primary: `google/gemma-2-2b-it`** — Indonesia lumayan, lisensi oke, didukung Unsloth, muat 4-bit di T4.
-- **Fallback/pembanding: `Qwen/Qwen2.5-1.5B-Instruct`** — lebih kenceng, bagus buat ablation kecil di §4.
-- (Opsional ambisius, kalau VRAM mepet jangan): base ber-pretraining Indonesia kayak SEA-LION / SahabatAI — lebih jago Indonesia tapi rata-rata lebih gede dari budget T4.
+- **Primary: `google/gemma-2-2b-it`**, Indonesia lumayan, lisensi oke, didukung Unsloth, muat 4-bit di T4.
+- **Fallback/pembanding: `Qwen/Qwen2.5-1.5B-Instruct`**, lebih kenceng, bagus buat ablation kecil di §4.
+- (Opsional ambisius, kalau VRAM mepet jangan): base ber-pretraining Indonesia kayak SEA-LION / SahabatAI, lebih jago Indonesia tapi rata-rata lebih gede dari budget T4.
 
 **Audience tagging:** pakai **instruksi natural language** di dalam prompt (`[AUDIENS: Eksekutif] ...`), **bukan** special token. Alasan: data kecil + nggak perlu operasi tokenizer + lebih generalizable.
 
@@ -56,7 +56,7 @@ Kalau target = output Gemini, maka ROUGE/BERTScore vs target itu ngukur **"seber
 **Model 2B TIDAK akan jalan di Vercel serverless.** Pisahkan:
 - **Frontend (Next.js)** → Vercel.
 - **Model API (FastAPI)** → host Python: **HF Spaces (CPU gratis)** pakai **GGUF + llama-cpp-python**, atau lokal + ngrok buat demo day, atau Render free.
-- Makanya **export GGUF (quantized)** bukan sekadar "nice to have" — itu yang bikin demo bisa hidup di CPU gratis.
+- Makanya **export GGUF (quantized)** bukan sekadar "nice to have", itu yang bikin demo bisa hidup di CPU gratis.
 
 **Guardrail serving (wajib, biar demo publik nggak mati di CPU gratis):**
 - Batas panjang input (mis. ~3000 token) → dokumen kepanjangan = error rapi "dokumen terlalu panjang", bukan timeout.
@@ -68,7 +68,7 @@ Kalau target = output Gemini, maka ROUGE/BERTScore vs target itu ngukur **"seber
 ### 1.5 Higiene data (jebakan halus yang bikin angka eval BOHONG)
 1. **Split BY DOCUMENT, bukan by row.** Satu dokumen menghasilkan 3 baris training (eksekutif/operasional/awam). Ketiganya WAJIB masuk split yang sama. Kalau split di level baris, dokumen yang sama bocor ke train dan test → semua angka eval invalid, dan nggak akan ketahuan kalau nggak dicek dari awal.
 2. **Kunci test set SEBELUM teacher generation.** Split dulu, baru generate target. Dedup near-duplicate artikel antar split (judul/teks mirip).
-3. **Quality gate target sintetik** (`validate_targets.py`, jalan sebelum training): tiap brief dicek otomatis terhadap `audience_specs.yaml` — panjang dalam rentang, struktur sesuai (eksekutif = bullet ≤5, operasional = list bernomor), bahasa Indonesia, bukan refusal/kosong, tidak bocorin tag `[AUDIENS: ...]` di body. Gagal → regenerate 1x → masih gagal → buang barisnya. Laporkan % lolos di `reports/build_log.md`. **Data-centric > model-centric: kualitas target sintetik = plafon kualitas model lo.**
+3. **Quality gate target sintetik** (`validate_targets.py`, jalan sebelum training): tiap brief dicek otomatis terhadap `audience_specs.yaml`: panjang dalam rentang, struktur sesuai (eksekutif = bullet ≤5, operasional = list bernomor), bahasa Indonesia, bukan refusal/kosong, tidak bocorin tag `[AUDIENS: ...]` di body. Gagal → regenerate 1x → masih gagal → buang barisnya. Laporkan % lolos di `reports/build_log.md`. **Data-centric > model-centric: kualitas target sintetik = plafon kualitas model lo.**
 
 ---
 
@@ -76,16 +76,16 @@ Kalau target = output Gemini, maka ROUGE/BERTScore vs target itu ngukur **"seber
 
 Ini "rahasia dapur" sekaligus edge komunikasi. **Definisi ini dipakai 3 tempat:** prompt teacher (Gemini), instruksi inferensi, dan rubrik human eval. Satu sumber → `audience_specs.yaml`.
 
-**Brief Eksekutif** — buat decision-maker sibuk.
+**Brief Eksekutif**: buat decision-maker sibuk.
 - *Bottom line up front*: kesimpulan/keputusan di kalimat pertama.
 - Fokus "so what": dampak, risiko, 1 angka kunci.
 - Maks ~5 bullet. Tanpa jargon. Tanpa langkah detail.
 
-**Brief Operasional** — buat orang yang ngeksekusi.
+**Brief Operasional**: buat orang yang ngeksekusi.
 - Actionable: siapa-ngapain, langkah, tenggat, dependensi, angka spesifik.
 - Boleh lebih panjang & detail. Pakai list bernomor.
 
-**Brief Awam** — buat publik umum.
+**Brief Awam**: buat publik umum.
 - Bahasa polos, nol jargon (kalau ada, dijelasin).
 - "Kenapa ini penting buat gue", boleh pakai analogi.
 - Nada netral, tidak menggurui.
@@ -131,13 +131,13 @@ Ini "rahasia dapur" sekaligus edge komunikasi. **Definisi ini dipakai 3 tempat:*
 
 ### 4.1 Metrik wajib
 - **ROUGE-1 / ROUGE-2 / ROUGE-L** (`evaluate` / `rouge_score`). Tokenisasi level kata cukup untuk Indonesia.
-- **BERTScore** — ⚠️ **GOTCHA FATAL:** default pakai RoBERTa Inggris → skor sampah untuk teks Indonesia. **WAJIB** set `lang="id"` atau `model_type="indobenchmark/indobert-base-p1"` (atau mBERT). Tulis ini di kode + komentar.
+- **BERTScore**: ⚠️ **GOTCHA FATAL:** default pakai RoBERTa Inggris → skor sampah untuk teks Indonesia. **WAJIB** set `lang="id"` atau `model_type="indobenchmark/indobert-base-p1"` (atau mBERT). Tulis ini di kode + komentar.
 - **3 kondisi yang dibandingkan, BUKAN 2** (dipecah per-audiens):
-  - **(a) Base + prompt audiens yang sama** (prompt engineering murni di model base, boleh few-shot) — ini baseline yang FAIR.
+  - **(a) Base + prompt audiens yang sama** (prompt engineering murni di model base, boleh few-shot), ini baseline yang FAIR.
   - **(b) Fine-tuned** (QLoRA).
   - **(c)** opsional: **teacher Gemini** sebagai plafon atas.
-  - Kenapa: ini jawaban buat **pertanyaan pembunuh** dari reviewer/recruiter: *"kenapa repot fine-tune, kenapa nggak prompt aja?"* Kalau (b) nggak ngalahin (a), tesis proyek runtuh — dan lo harus tau itu dari data, bukan asumsi. Kalau (b) menang, itu justru bukti terkuat lo.
-- **Bootstrap confidence interval** (resampling ≥1000x) untuk delta ROUGE/BERTScore antara (a) dan (b) — biar klaim "fine-tuned lebih baik" punya errorbar, bukan angka tunggal. Murah diimplement, sinyal senioritas gede.
+  - Kenapa: ini jawaban buat **pertanyaan pembunuh** dari reviewer/recruiter: *"kenapa repot fine-tune, kenapa nggak prompt aja?"* Kalau (b) nggak ngalahin (a), tesis proyek runtuh, dan lo harus tau itu dari data, bukan asumsi. Kalau (b) menang, itu justru bukti terkuat lo.
+- **Bootstrap confidence interval** (resampling ≥1000x) untuk delta ROUGE/BERTScore antara (a) dan (b), biar klaim "fine-tuned lebih baik" punya errorbar, bukan angka tunggal. Murah diimplement, sinyal senioritas gede.
 
 ### 4.2 Anti-halu / faithfulness
 - Skor coverage vs **ringkasan referensi asli** (bukan target Gemini), atau cek entailment ringan. Tunjukin model nggak ngarang fakta.
@@ -173,7 +173,7 @@ Kolom kualitas diisi **ROUGE-L** terhadap target audiens, dipilih karena murah, 
 
 ```
 brief/
-├── BLUEPRINT.md              # file ini — sumber kebenaran
+├── BLUEPRINT.md              # file ini, sumber kebenaran
 ├── CLAUDE.md                 # guardrail singkat buat Claude Code (lihat §9)
 ├── README.md                 # ringkasan + cara jalanin
 ├── requirements.txt          # / pyproject.toml
@@ -197,7 +197,7 @@ brief/
 │   ├── data/
 │   │   ├── load_indosum.py       # + split BY DOCUMENT di sini (kunci test set duluan)
 │   │   ├── teacher_generate.py   # Gemini → 3 brief/dokumen (+ retry, cache, RESUMABLE per-N-dokumen)
-│   │   ├── validate_targets.py   # quality gate target sintetik (§1.5) — jalan SEBELUM training
+│   │   ├── validate_targets.py   # quality gate target sintetik (§1.5), jalan SEBELUM training
 │   │   └── build_dataset.py      # format instruksi + jsonl
 │   ├── train/
 │   │   └── train_qlora.py        # Unsloth/PEFT loop + W&B
@@ -219,10 +219,10 @@ brief/
 │   ├── eval_table.md / .csv      # hasil prompted-base vs tuned (+ CI)
 │   └── build_log.md              # catatan proses (buat blog post)
 │
-├── MODEL_CARD.md                 # model card gaya HF (M4) — ikut ke-publish di HF Hub
+├── MODEL_CARD.md                 # model card gaya HF (M4), ikut ke-publish di HF Hub
 │
 ├── deck/                         # slide deck (M4)
-└── frontend/                     # Next.js (Nehemiah bikin sendiri — §7)
+└── frontend/                     # Next.js (Nehemiah bikin sendiri, §7)
 ```
 
 **Penomoran tahap** (`01_` … `06_`) bikin Claude Code bisa eksekusi berurutan & lo gampang resume.
@@ -243,7 +243,7 @@ brief/
 | Frontend | **Next.js** (App Router) | Vercel |
 | Container | Docker (stretch) | reproducibility |
 
-**1 hal beneran baru yang lo pelajarin:** PEFT/QLoRA training loop. Fokus paham itu dalam-dalam (kenapa LoRA, kenapa 4-bit, apa itu rank/alpha) — itu yang ditanya recruiter.
+**1 hal beneran baru yang lo pelajarin:** PEFT/QLoRA training loop. Fokus paham itu dalam-dalam (kenapa LoRA, kenapa 4-bit, apa itu rank/alpha), itu yang ditanya recruiter.
 
 **Hyperparam awal QLoRA** (`train_config.yaml`):
 ```yaml
@@ -264,21 +264,21 @@ grad_accum: 4
 
 ---
 
-## 7. FITUR FRONTEND (cuma daftar — desain & implementasi: Nehemiah)
+## 7. FITUR FRONTEND (cuma daftar, desain & implementasi: Nehemiah)
 
 > Backend ngasih: `POST /generate {document, audience}` → `{brief}` (streaming kalau bisa), `GET /examples`, `GET /metrics`, `GET /health`. Frontend bebas dikreasiin, asal nutupin fitur ini:
 
 **Inti (wajib):**
-1. **Input dokumen** — textarea besar + upload file (`.txt`, `.pdf`) + counter token/karakter.
-2. **Pemilih audiens** — toggle 3 arah: Eksekutif / Operasional / Awam.
-3. **"Generate Ketiganya Sekaligus"** — tampilkan 3 brief berdampingan dari 1 input. **Ini money-shot demo** — paling jelas nunjukin audience conditioning.
-4. **Panel output** — streaming text per audiens, tombol copy, badge model+quant (mis. "gemma-2-2b · Q4_K_M").
+1. **Input dokumen**: textarea besar + upload file (`.txt`, `.pdf`) + counter token/karakter.
+2. **Pemilih audiens**: toggle 3 arah: Eksekutif / Operasional / Awam.
+3. **"Generate Ketiganya Sekaligus"**: tampilkan 3 brief berdampingan dari 1 input. **Ini money-shot demo**, paling jelas nunjukin audience conditioning.
+4. **Panel output**: streaming text per audiens, tombol copy, badge model+quant (mis. "gemma-2-2b · Q4_K_M").
 
 **Pembeda (yang bikin portfolio = bukti, bukan klaim):**
-5. **Mode Banding: Base vs Fine-tuned** — output dua model sisi-sisi dari input sama. Bukti training-nya kerja.
-6. **Halaman Eval / Metodologi** — tabel ROUGE + BERTScore + win-rate human study + contoh sampel. Ubah portfolio jadi *evidence*.
-7. **Dokumen contoh / preset "Coba Ini"** — biar pengunjung nggak perlu bawa dokumen sendiri.
-8. **Panel transparansi "Behind the scenes"** — tampilkan prompt/tag audiens yang dipakai. Transparansi = trust.
+5. **Mode Banding: Base vs Fine-tuned**, output dua model sisi-sisi dari input sama. Bukti training-nya kerja.
+6. **Halaman Eval / Metodologi**: tabel ROUGE + BERTScore + win-rate human study + contoh sampel. Ubah portfolio jadi *evidence*.
+7. **Dokumen contoh / preset "Coba Ini"**: biar pengunjung nggak perlu bawa dokumen sendiri.
+8. **Panel transparansi "Behind the scenes"**: tampilkan prompt/tag audiens yang dipakai. Transparansi = trust.
 
 **Polish (kalau sempat):**
 9. Indikator latensi/loading, **ekspor brief** (copy/download), tombol bagikan.
@@ -287,14 +287,14 @@ grad_accum: 4
 
 ---
 
-## 8. Milestones (4, sistem Nehemiah) — mulai 2026-07-14
+## 8. Milestones (4, sistem Nehemiah): mulai 2026-07-14
 
 > Reminder per milestone: **48 jam · 24 jam · 1 jam** sebelum target. Kalau slip → langsung pecah jadi 2 tugas lebih pendek di sesi yang sama.
 
 ```
 📌 BRIEF
-├── M1 — Data Prep + Baseline      Target: Sen, 27 Jul 2026 (~2 mgg)
-│     • load IndoSum, bersihin, SPLIT BY DOCUMENT (kunci test set duluan — §1.5)
+├── M1: Data Prep + Baseline      Target: Sen, 27 Jul 2026 (~2 mgg)
+│     • load IndoSum, bersihin, SPLIT BY DOCUMENT (kunci test set duluan, §1.5)
 │     • audience_specs.yaml + prompts teacher
 │     • teacher_generate.py: Gemini bikin 3 brief/dokumen (mulai 300–500 dokumen, resumable)
 │     • validate_targets.py: quality gate sintetik + % lolos di build_log
@@ -302,13 +302,13 @@ grad_accum: 4
 │     • eval BASELINE: base + prompt audiens (arm (a) §4.1) → angka pembanding di W&B
 │     ✅ Selesai = jsonl valid (lolos gate) + tabel baseline prompted-base
 │
-├── M2 — QLoRA Train + Checkpoint  Target: Sen, 10 Agt 2026 (~2 mgg)
+├── M2: QLoRA Train + Checkpoint  Target: Sen, 10 Agt 2026 (~2 mgg)
 │     • notebook Colab T4 + Unsloth jalan end-to-end
 │     • W&B logging (loss + sample generations)
 │     • checkpoint fine-tuned pertama, sanity-check 3 lensa beda
 │     ✅ Selesai = adapter tersimpan + 3 brief jelas beda dari 1 input
 │
-├── M3 — Eval Rigor + Human Study  Target: Sen, 24 Agt 2026 (~2 mgg)
+├── M3: Eval Rigor + Human Study  Target: Sen, 24 Agt 2026 (~2 mgg)
 │     • metrics.py (ROUGE, BERTScore-ID, distinct-n, pairwise, bootstrap CI)
 │     • run_eval 3 arm: prompted-base vs tuned (vs teacher) → reports/eval_table
 │     • human study: form + 5–10 perater + win-rate + agreement antar-rater
@@ -316,7 +316,7 @@ grad_accum: 4
 │     • (stretch) subset legal putusan MA buat domain-transfer
 │     ✅ Selesai = tabel 3-arm dengan CI + hasil human study
 │
-└── M4 — Serve + Demo + Deck       Target: Sen, 7 Sep 2026 (~2 mgg)
+└── M4: Serve + Demo + Deck       Target: Sen, 7 Sep 2026 (~2 mgg)
       • merge + export GGUF q4_k_m
       • publish adapter + GGUF ke HF Hub + MODEL_CARD.md (bukti publik gratis!)
       • FastAPI (+ guardrail §1.4) + deploy backend (HF Spaces) + frontend (Vercel)
@@ -328,9 +328,9 @@ grad_accum: 4
 
 ---
 
-## 9. Guardrail buat Claude Code (ringkas — taruh juga di CLAUDE.md repo)
+## 9. Guardrail buat Claude Code (ringkas, taruh juga di CLAUDE.md repo)
 - Baca `BLUEPRINT.md` + `config/audience_specs.yaml` sebelum nulis kode tahap apa pun.
-- **Jangan** hardcode definisi audiens di banyak tempat — selalu dari `audience_specs.yaml`.
+- **Jangan** hardcode definisi audiens di banyak tempat, selalu dari `audience_specs.yaml`.
 - **Jangan** commit `.env`, `data/raw/`, checkpoint model, atau `wandb/`.
 - BERTScore Indonesia: **selalu** set `lang="id"`/model ID. Jangan default Inggris.
 - Pisahkan kode "berat" (train/eval di Colab) dari "ringan" (serve). Train via notebook, logic via `src/brief/...` yang bisa di-import notebook.
@@ -344,6 +344,6 @@ grad_accum: 4
 2. **Model 2B kecil → output bisa medioker.** "Wow" datang dari **beda 3 lensa yang jelas**, bukan dari kualitas prosa. Investasi di desain data & rubrik > ukuran model.
 3. **Deploy 2B ≠ Vercel.** Frontend Vercel, model di HF Spaces (GGUF/CPU). Rencanain dari awal.
 4. **Opportunity cost.** Ini proyek aktif ke-4. Komit: BRIEF di-SHIP (demo publik) sebelum mulai eksperimen baru lagi. Flagship yang nganggur = nol nilai buat recruiter.
-5. **ToS teacher (Gemini).** Pakai output LLM komersial buat training model lain itu area abu-abu di ToS (klausul "no competing model"). Untuk proyek portfolio summarizer 2B risikonya praktis kecil, tapi AKUI eksplisit di laporan/model card ("targets distilled from Gemini"). Mau 100% aman? Ganti teacher ke model open-weight besar — tapi jangan biarin keputusan ini nyandera timeline.
-6. **Kuota free tier teacher.** Gemini flash free tier punya limit RPM/harian → generate 500 dok × 3 brief bisa makan berjam-jam/beberapa hari. Makanya `teacher_generate.py` WAJIB resumable (checkpoint tiap N dokumen) + cache — sekali jalan putus, jangan mulai dari nol.
+5. **ToS teacher (Gemini).** Pakai output LLM komersial buat training model lain itu area abu-abu di ToS (klausul "no competing model"). Untuk proyek portfolio summarizer 2B risikonya praktis kecil, tapi AKUI eksplisit di laporan/model card ("targets distilled from Gemini"). Mau 100% aman? Ganti teacher ke model open-weight besar, tapi jangan biarin keputusan ini nyandera timeline.
+6. **Kuota free tier teacher.** Gemini flash free tier punya limit RPM/harian → generate 500 dok × 3 brief bisa makan berjam-jam/beberapa hari. Makanya `teacher_generate.py` WAJIB resumable (checkpoint tiap N dokumen) + cache: sekali jalan putus, jangan mulai dari nol.
 ```
