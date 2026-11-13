@@ -182,3 +182,16 @@ Inti filosofinya ada di satu kalimat EVAL_DESIGN: setiap metrik otomatis adalah 
 - Risiko terbesar secara ide: bisa jadi base model yang di-prompt dengan baik sudah cukup, sehingga fine-tune tidak menang. Rancangan evaluasinya memang dibuat untuk mendeteksi itu, tapi belum diuji.
 - Kuota gratis Gemini bisa membuat pembuatan label untuk ratusan dokumen makan waktu berhari-hari.
 - Catatan lokal di CLAUDE.md menyebut syarat buka parkir: projek `agentic_verdict` dan `finance-rag` harus punya link publik yang hidup dulu.
+
+## 10. Langkah berikutnya kalau mau mulai implementasi
+
+Urut dari yang paling murah. Jangan loncat.
+
+1. Pastikan syarat buka parkir sudah terpenuhi (`agentic_verdict` dan `finance-rag` live). Kalau belum, berhenti di sini.
+2. Perbarui BLUEPRINT bagian 8 dengan jadwal Q1 2027 dan rapikan pohon file di README. Cuma edit dokumen.
+3. Muat IndoSum di Colab, hitung jumlah dokumen dan sebaran panjang token. Ini memverifikasi angka 19 ribu dan menentukan apakah `max_seq_length` 2048 cukup.
+4. Tulis split per dokumen, buang near-duplicate, kunci test set. Belum ada biaya API.
+5. Jalankan arm (a) di 20 sampai 30 dokumen test: Gemma dasar dengan prompt dari YAML. Kalau tiga gayanya sudah jelas beda tanpa training, itu sinyal penting soal tesis projek.
+6. Bangun `teacher_generate.py` yang bisa dilanjutkan, plus `validate_targets.py`. Mulai dari 300 dokumen, catat persentase lolos.
+7. Latih QLoRA pertama di Colab T4 dengan hyperparameter awal, log ke W&B, cek manual tiga output dari satu input.
+8. Baru setelah itu: `metrics.py` dengan bootstrap, human study, ekspor GGUF, serving, frontend.
