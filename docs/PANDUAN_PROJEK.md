@@ -195,3 +195,36 @@ Urut dari yang paling murah. Jangan loncat.
 6. Bangun `teacher_generate.py` yang bisa dilanjutkan, plus `validate_targets.py`. Mulai dari 300 dokumen, catat persentase lolos.
 7. Latih QLoRA pertama di Colab T4 dengan hyperparameter awal, log ke W&B, cek manual tiga output dari satu input.
 8. Baru setelah itu: `metrics.py` dengan bootstrap, human study, ekspor GGUF, serving, frontend.
+
+## 11. Cara menjelaskan ke rekruter
+
+Posisikan BRIEF sebagai bukti kemampuan merancang sebelum ngoding, bukan sebagai produk jadi. Jangan pernah bilang modelnya sudah dilatih.
+
+**Pitch 30 detik (Indonesia):**
+"BRIEF itu rancangan untuk melatih model 2B dengan QLoRA supaya satu dokumen bisa diringkas jadi tiga versi: untuk eksekutif, untuk pelaksana, dan untuk orang awam. Masalah utamanya, data per pembaca tidak ada, jadi saya rancang distilasi dari Gemini. Konsekuensinya metrik otomatis jadi bias ke teacher, jadi saya rancang evaluasi tiga arm dengan baseline prompt-only, bootstrap CI, faithfulness ke referensi asli, dan human study. Statusnya masih desain. Saya parkir dengan sengaja dan menerbitkan spesifikasinya apa adanya."
+
+**Pitch 30 detik (English):**
+"BRIEF is a design for fine-tuning a 2B model with QLoRA so one document can be summarized three ways: for executives, for the people executing, and for the general public. There is no per-audience training data, so I designed synthetic distillation from Gemini. That makes automatic metrics biased toward the teacher, so the evaluation plan uses three arms including a prompt-only baseline, bootstrap confidence intervals, faithfulness against the original references, and a human preference study. It is still in the design phase. I parked it on purpose and published the spec as it is."
+
+**Pertanyaan yang mungkin muncul:**
+
+**"Jadi ini belum jalan?"**
+Betul, belum ada kode training dan belum ada model. Yang saya tunjukkan adalah spesifikasi dan rancangan evaluasinya. Rancangan evaluasi itu sengaja dibuat generik, dan EVAL_DESIGN bagian 9 sudah memakainya untuk membedah celah evaluasi di dua projek saya yang lain.
+
+**"Kenapa nggak prompt aja ke model besar?"**
+Itu pertanyaan yang saya jadikan arm wajib. Base model dengan prompt audiens yang sama jadi pembanding. Kalau fine-tune tidak menang secara statistik, berarti memang cukup prompt, dan saya mau tahu itu dari data.
+
+**"Labelnya dari mana kalau datasetnya cuma punya satu ringkasan?"**
+Dari Gemini sebagai teacher, mengikuti rubrik yang sama dengan rubrik penilaian. Labelnya lewat quality gate otomatis dulu, dan persentase yang lolos dilaporkan.
+
+**"Bukannya metriknya jadi bias ke Gemini?"**
+Iya, dan itu ditulis terang-terangan. Makanya ada faithfulness yang diukur ke referensi asli, ada human study sebagai validator independen, dan kalau pakai LLM judge, sebaiknya dari keluarga model lain.
+
+**"Kenapa QLoRA, bukan full fine-tune?"**
+Budget nol. QLoRA memuat model dalam 4-bit dan cuma melatih adapter kecil, jadi muat di T4 gratis Colab. Full fine-tune model 2B tidak muat di sana.
+
+**"Gimana tahu tiga gayanya beneran beda?"**
+ROUGE antar tiga output dari input yang sama harus rendah, ditambah distinct-n dan panjang rata-rata per audiens. Ambang awalnya ditulis di YAML dan ditandai sebagai heuristik.
+
+**"Kenapa diparkir?"**
+Argumen "bisa fine-tune" melemah karena prompting makin murah. Enam sampai delapan minggu lebih berharga untuk merilis projek lain yang kodenya sudah jadi. Spesifikasinya tetap saya terbitkan dengan label status yang jujur.
