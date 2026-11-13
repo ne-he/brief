@@ -73,7 +73,6 @@ BRIEF/
 ├── README.md                  # file ini
 ├── BLUEPRINT.md               # spesifikasi teknis lengkap, sumber kebenaran
 ├── EVAL_DESIGN.md             # rancangan evaluasi generik, bisa dipakai projek lain
-├── CLAUDE.md                  # guardrail untuk sesi coding agent
 └── config/
     └── audience_specs.yaml    # definisi 3 lensa audiens
 ```
