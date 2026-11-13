@@ -161,3 +161,24 @@ Inti filosofinya ada di satu kalimat EVAL_DESIGN: setiap metrik otomatis adalah 
 **Model kecil di CPU, bukan model besar di GPU.** Gratis dan bisa dipamerkan publik, tapi outputnya lebih lambat dan kualitas prosanya mungkin biasa saja. BLUEPRINT bilang nilai "wow"-nya ada di perbedaan tiga gaya yang jelas, bukan di keindahan kalimat.
 
 **Diparkir dan dipublikasikan apa adanya.** README menjelaskan bahwa nilai jual "bisa fine-tune" melemah di 2026 karena prompting makin murah dan context window makin besar. Menghabiskan enam sampai delapan minggu untuk itu dianggap kurang sepadan selama masih ada projek lain yang tinggal dirilis. Jadi spesifikasinya diterbitkan dengan banner yang jelas bahwa ini belum jadi.
+
+## 8. Update terbaru
+
+- **1 Agt 2026** (`6509e65`): spec awal masuk repo. README, BLUEPRINT, EVAL_DESIGN, `audience_specs.yaml`, `.gitignore`, dan CLAUDE.md.
+- **14 Agt 2026** (`e179a88`): CLAUDE.md dikeluarkan dari repo publik dan ditambahkan ke `.gitignore`.
+- **28 Sep 2026** (`dbf5cd3`): pembersihan em dash di BLUEPRINT dan `audience_specs.yaml`. Ini commit terakhir.
+- **11 Nov 2026**: sesi kerja tanpa perubahan kode.
+- **November 2026**: panduan ini ditambahkan di `docs/`, belum di-commit.
+
+## 9. Batasan jujur dan yang belum dikerjakan
+
+- Nol kode. Tidak ada skrip data, training, evaluasi, ekspor, maupun serving. Tidak ada `requirements.txt`.
+- Tidak ada angka. Klaim apa pun soal kualitas model belum bisa dibuat.
+- Tanggal milestone di BLUEPRINT bagian 8 (27 Jul sampai 7 Sep 2026) sudah kedaluwarsa. README menyatakan jadwal yang berlaku adalah Q1 2027.
+- Ambang conditioning 0.55 dan batas input sekitar 3000 token masih tebakan awal.
+- Ukuran IndoSum sekitar 19 ribu dokumen hanya dikutip dari BLUEPRINT [?].
+- Pohon file di README masih mencantumkan CLAUDE.md, padahal file itu tidak ada di repo publik.
+- Commit pembersihan em dash belum tuntas: BLUEPRINT masih memuat tanda pisah rentang (en dash) di beberapa rentang angka, misalnya durasi minggu.
+- Risiko terbesar secara ide: bisa jadi base model yang di-prompt dengan baik sudah cukup, sehingga fine-tune tidak menang. Rancangan evaluasinya memang dibuat untuk mendeteksi itu, tapi belum diuji.
+- Kuota gratis Gemini bisa membuat pembuatan label untuk ratusan dokumen makan waktu berhari-hari.
+- Catatan lokal di CLAUDE.md menyebut syarat buka parkir: projek `agentic_verdict` dan `finance-rag` harus punya link publik yang hidup dulu.
