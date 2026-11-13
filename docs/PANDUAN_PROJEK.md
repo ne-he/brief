@@ -228,3 +228,31 @@ ROUGE antar tiga output dari input yang sama harus rendah, ditambah distinct-n d
 
 **"Kenapa diparkir?"**
 Argumen "bisa fine-tune" melemah karena prompting makin murah. Enam sampai delapan minggu lebih berharga untuk merilis projek lain yang kodenya sudah jadi. Spesifikasinya tetap saya terbitkan dengan label status yang jujur.
+## 12. Kamus istilah
+
+| Istilah | Artinya dalam bahasa sederhana |
+|---|---|
+| Fine-tuning | Melatih ulang model yang sudah pintar secara umum supaya jago di satu tugas khusus |
+| LoRA | Teknik fine-tuning yang tidak mengubah otak utama model, cuma menambah "tempelan" kecil yang dilatih |
+| QLoRA | LoRA di atas model yang sudah dikompres ke 4-bit, jadi hemat memori GPU |
+| 4-bit NF4 | Cara menyimpan angka bobot model dengan 4 bit saja, memakai format yang cocok untuk sebaran bobot jaringan saraf |
+| Rank (r) dan alpha | Ukuran kapasitas adapter LoRA dan seberapa kuat pengaruhnya ke model |
+| Adapter | File kecil hasil LoRA yang ditempelkan ke model dasar |
+| GGUF | Format file model untuk llama.cpp, dirancang supaya model bisa jalan di CPU biasa |
+| q4_k_m | Salah satu tingkat kompresi 4-bit di GGUF, kompromi antara ukuran dan kualitas |
+| Teacher model | Model besar yang dipakai membuat contoh jawaban untuk melatih model kecil |
+| Distilasi | Memindahkan kemampuan model besar ke model kecil lewat contoh buatan model besar |
+| Target sintetik | Label latih yang ditulis mesin, bukan manusia |
+| Quality gate | Saringan otomatis yang membuang label yang tidak memenuhi aturan |
+| Audience conditioning | Mengatur gaya output model lewat informasi siapa pembacanya |
+| ROUGE | Skor tumpang tindih kata antara dua teks |
+| BERTScore | Skor kemiripan makna antara dua teks lewat embedding |
+| Distinct-n | Seberapa beragam potongan kata dalam output, makin tinggi makin tidak monoton |
+| Arm | Satu kondisi yang dibandingkan dalam eksperimen, misalnya base atau fine-tuned |
+| Bootstrap CI | Selang ketidakpastian yang dihitung dengan mengambil ulang sampel berkali-kali |
+| Faithfulness | Apakah ringkasan setia ke sumber dan tidak mengarang fakta |
+| LLM-as-judge | Memakai model bahasa sebagai penilai otomatis |
+| Agreement antar penilai | Seberapa sering dua penilai manusia memberi nilai yang sama, Krippendorff alpha salah satu ukurannya |
+| Data leakage | Data test bocor ke data latih sehingga skor terlihat bagus palsu |
+| Colab T4 | GPU gratis dari Google Colab, memorinya terbatas |
+| Unsloth | Library yang mempercepat dan menghemat memori fine-tuning |
