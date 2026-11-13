@@ -128,3 +128,36 @@ Hyperparameter awal yang dicatat di BLUEPRINT: `lora_r` 16, `lora_alpha` 32, dro
 Benang merah pemilihan stack ini adalah budget nol rupiah. Colab T4 gratis untuk training, HF Spaces CPU gratis untuk model, Vercel gratis untuk frontend. Itu juga alasan GGUF bukan pelengkap tapi syarat: tanpa kompresi, model 2B tidak akan hidup di CPU gratisan.
 
 BLUEPRINT juga menulis guardrail serving supaya demo di CPU gratis tidak mati: batas panjang input sekitar 3000 token, batas output per audiens diambil dari YAML, dan cache untuk dokumen contoh.
+
+## 6. Rancangan evaluasi
+
+Ini bagian paling matang dari repo, dan README sendiri bilang ini satu-satunya bagian yang sudah berguna sebelum ada implementasi. **Belum ada satu angka hasil pun.** Tabel banding di BLUEPRINT bagian 4.6 memang sengaja dibiarkan kosong dengan isi "(isi nanti)".
+
+Yang direncanakan diukur:
+
+- **ROUGE-1, ROUGE-2, ROUGE-L.** Menghitung tumpang tindih kata antara output dan target. Murah dan deterministik, tapi menghukum parafrase yang benar dan buta terhadap fakta yang salah.
+- **BERTScore yang diset ke bahasa Indonesia.** Mengukur kemiripan makna lewat embedding. Jebakan utamanya: default BERTScore memakai model bahasa Inggris dan tetap mengeluarkan angka yang kelihatan wajar untuk teks Indonesia. Rencananya pakai `lang="id"` atau `indobenchmark/indobert-base-p1`.
+- **Tiga arm.** (a) model dasar dengan prompt audiens yang sama, (b) hasil fine-tune, (c) opsional Gemini sebagai plafon. Arm (a) adalah jawaban untuk pertanyaan "kenapa nggak prompt aja". Kalau (b) tidak mengalahkan (a), tesis projeknya gugur, dan itu harus kelihatan dari data.
+- **Bootstrap confidence interval.** Resample minimal 1000 kali untuk selisih antar arm. Selisih kecil yang selangnya melewati nol dianggap noise.
+- **Faithfulness.** Diukur terhadap ringkasan referensi asli dari dataset atau terhadap dokumen sumber, bukan terhadap target Gemini. Ini satu-satunya jalur otomatis yang tidak lewat teacher.
+- **Cek conditioning.** ROUGE-L antar tiga output dari input yang sama harus **rendah**. YAML menaruh ambang awal 0.55 dan menyebutnya heuristik yang harus dikalibrasi ulang. Ditambah distinct-1/2 dan panjang rata-rata per audiens.
+- **Human preference study.** Blind A/B antara base yang di-prompt dan hasil fine-tune, skala Likert 1 sampai 5 untuk kecocokan audiens, pertanyaan soal fakta yang dikarang. Sekitar 10 sampai 15 dokumen dikali tiga audiens, tiap item dinilai minimal dua orang supaya agreement antar penilai bisa dilaporkan. Hasilnya disebut directional karena sampelnya kecil.
+- **LLM-as-judge (opsional).** Boleh dipakai sebagai proksi, tapi bias "teacher jadi judge" wajib ditulis. EVAL_DESIGN menyarankan judge dari keluarga model lain dan kalibrasi ke label manusia.
+
+Inti filosofinya ada di satu kalimat EVAL_DESIGN: setiap metrik otomatis adalah proksi. Karena target latihnya buatan Gemini, ROUGE dan BERTScore terhadap target itu cuma mengukur seberapa mirip model dengan Gemini. Human study yang jadi validator kualitas sebenarnya.
+
+## 7. Keputusan desain penting
+
+**Label dari distilasi sintetik.** Karena data per audiens tidak ada, Gemini yang membuatnya. Untungnya, projek bisa jalan. Ruginya, semua metrik kemiripan jadi bias ke gaya Gemini. Ada juga area abu-abu di syarat layanan soal memakai output model komersial untuk melatih model lain. BLUEPRINT menilai risikonya kecil untuk projek portofolio tapi mewajibkan pengakuan eksplisit di model card.
+
+**Tag audiens berupa teks biasa, bukan token khusus.** `[AUDIENS: Eksekutif]` ditulis sebagai instruksi biasa. Alasannya, datanya kecil dan cara ini tidak perlu mengutak-atik tokenizer. Gantinya, model harus belajar membaca instruksi itu dari contoh saja.
+
+**IndoSum dulu, putusan MA belakangan.** Berita itu bersih dan pendek, jadi pipeline bisa dibuktikan jalan. Putusan Mahkamah Agung lebih mengesankan tapi butuh scraping dan pembersihan berminggu-minggu, dan dokumennya bisa lebih dari 8 ribu token yang susah dimuat di T4. Statusnya stretch goal yang sengaja tidak boleh menyandera jadwal.
+
+**Satu file definisi untuk tiga kegunaan.** `audience_specs.yaml` dipakai untuk prompt teacher, instruksi saat inferensi, dan rubrik human eval. Kalau ketiganya ditulis terpisah, yang dilatih dan yang dinilai bisa diam-diam beda definisi. Konsekuensinya, mengubah YAML berarti mengubah ketiganya sekaligus, jadi harus hati-hati.
+
+**Split per dokumen, test set dikunci duluan.** Satu dokumen menghasilkan tiga baris latih. Kalau dibagi per baris, dokumen yang sama bisa muncul di train dan test, dan semua angka evaluasi jadi tidak sah tanpa gejala.
+
+**Model kecil di CPU, bukan model besar di GPU.** Gratis dan bisa dipamerkan publik, tapi outputnya lebih lambat dan kualitas prosanya mungkin biasa saja. BLUEPRINT bilang nilai "wow"-nya ada di perbedaan tiga gaya yang jelas, bukan di keindahan kalimat.
+
+**Diparkir dan dipublikasikan apa adanya.** README menjelaskan bahwa nilai jual "bisa fine-tune" melemah di 2026 karena prompting makin murah dan context window makin besar. Menghabiskan enam sampai delapan minggu untuk itu dianggap kurang sepadan selama masih ada projek lain yang tinggal dirilis. Jadi spesifikasinya diterbitkan dengan banner yang jelas bahwa ini belum jadi.
