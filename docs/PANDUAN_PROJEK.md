@@ -92,3 +92,39 @@ hujan diharapkan berkurang.
 ```
 
 Perhatikan bentuknya: eksekutif pakai bullet dan kesimpulan di depan, operasional pakai daftar bernomor yang menyebut siapa mengerjakan apa, awam pakai paragraf biasa. Itu persis aturan di `audience_specs.yaml`.
+
+## 4. Peta isi repo: file penting
+
+Yang benar-benar ada sekarang:
+
+| Path | Isinya apa |
+|---|---|
+| `README.md` | Pintu depan. Banner status desain, masalah, pendekatan, asal label, ringkasan rancangan evaluasi, dan alasan projek diparkir |
+| `BLUEPRINT.md` | Sumber kebenaran teknis: keputusan arsitektur, diagram pipeline, metrik, struktur repo yang direncanakan, tech stack, hyperparameter QLoRA awal, fitur frontend, milestone, dan daftar risiko |
+| `EVAL_DESIGN.md` | Rancangan evaluasi yang sengaja dibuat lepas dari kasus QLoRA. Membahas metrik lexical dan semantic, masalah teacher sebagai judge, human study, faithfulness, negative set, dan checklist sebelum melaporkan angka |
+| `config/audience_specs.yaml` | Definisi tiga lensa audiens: label, tag, aturan tulisan, rentang panjang, aturan validasi, rubrik human eval, ambang cek conditioning, dan daftar alasan tolak |
+| `.gitignore` | Daftar yang tidak boleh masuk repo: `.env`, data mentah, cache Python, dan sejenisnya |
+| `CLAUDE.md` | Catatan untuk coding agent. Hanya ada di laptop, sudah dikeluarkan dari repo publik sejak 14 Agt 2026 |
+| `docs/PANDUAN_PROJEK.md` | Dokumen ini |
+
+Struktur yang **direncanakan** (folder `src/brief/`, `notebooks/`, `data/`, `human_study/`, `reports/`, `frontend/`, dan lain-lain) ada di BLUEPRINT bagian 5. Semuanya belum dibuat.
+
+## 5. Teknologi yang direncanakan dan kenapa
+
+| Lapisan | Pilihan | Alasan menurut BLUEPRINT |
+|---|---|---|
+| Model dasar | `google/gemma-2-2b-it` | Bahasa Indonesianya lumayan, lisensinya oke, didukung Unsloth, muat 4-bit di T4 |
+| Cadangan | `Qwen/Qwen2.5-1.5B-Instruct` | Lebih cepat, berguna untuk ablation kecil atau kalau T4 kehabisan memori |
+| Training | Unsloth + PEFT + bitsandbytes, QLoRA 4-bit NF4 | Hemat VRAM, gratis di Colab T4 |
+| Teacher | Gemini (BLUEPRINT menulis `gemini-2.0-flash`, sudah pensiun Oktober 2026, ganti ke Flash yang masih aktif) | Sudah ada akses, dipakai untuk membuat target sintetik |
+| Tracking | Weights & Biases | Loss, learning rate, contoh generasi, perbandingan base dan tuned |
+| Metrik | `evaluate`/`rouge_score`, `bert-score` (wajib diset bahasa Indonesia), distinct-n buatan sendiri | Lihat bagian 6 |
+| Ekspor | llama.cpp ke GGUF q4_k_m | Supaya model bisa jalan di CPU gratis |
+| Serving | FastAPI + `llama-cpp-python`, host di HF Spaces CPU | Model 2B tidak bisa jalan di Vercel serverless |
+| Frontend | Next.js App Router di Vercel | Dikerjakan sendiri oleh Nehemiah |
+
+Hyperparameter awal yang dicatat di BLUEPRINT: `lora_r` 16, `lora_alpha` 32, dropout 0.05, adapter dipasang di semua proyeksi attention dan MLP, `max_seq_length` 2048, learning rate 2e-4, 2 epoch, batch 2 dengan gradient accumulation 4. Semua ini titik awal, belum diuji.
+
+Benang merah pemilihan stack ini adalah budget nol rupiah. Colab T4 gratis untuk training, HF Spaces CPU gratis untuk model, Vercel gratis untuk frontend. Itu juga alasan GGUF bukan pelengkap tapi syarat: tanpa kompresi, model 2B tidak akan hidup di CPU gratisan.
+
+BLUEPRINT juga menulis guardrail serving supaya demo di CPU gratis tidak mati: batas panjang input sekitar 3000 token, batas output per audiens diambil dari YAML, dan cache untuk dokumen contoh.
